@@ -18,6 +18,12 @@ header.wrap{padding-top:32px;padding-bottom:18px;text-align:center}
 .tag{margin:8px 0 0;color:var(--mut);font-size:15px}
 .info{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:14px}
 .pill{background:var(--soft);border-radius:99px;padding:6px 12px;font-size:13px;color:#5d5550;font-weight:600}
+.status{display:inline-flex;align-items:center;gap:7px}
+.status i{width:8px;height:8px;border-radius:50%;background:#b8aea7;flex:none}
+.status.open{background:#e8f3e4;color:#3d6b31}.status.open i{background:#4f9a3c;box-shadow:0 0 0 3px rgba(79,154,60,.2)}
+.status.closed{background:var(--tint);color:var(--red-d)}.status.closed i{background:var(--red)}
+.hours{margin:10px 0 0;font-size:13px;color:var(--mut)}
+.fh{margin:0 0 10px;font-weight:600;color:#5d5550}
 
 nav{position:sticky;top:0;z-index:5;background:rgba(251,248,245,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:10px 0}

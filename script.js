@@ -1,6 +1,11 @@
 {
 const WHATS = '5511983262003'; // (11) 98326-2003 — DDI + DDD + número, só dígitos
 
+// Horário de funcionamento (horário de Brasília). 0 = domingo ... 6 = sábado. null = fechado.
+const HORARIO = {0:[18,22], 1:[16,22], 2:[16,22], 3:[16,22], 4:[16,22], 5:[16,22], 6:null};
+const HORARIO_TEXTO = 'Seg a sex, 16h às 22h · Dom, 18h às 22h · Sáb fechado';
+const BLOQUEAR_FORA_DO_HORARIO = true; // false = deixa enviar pedido com a loja fechada
+
 const ICON = {
   acai:`<svg viewBox="0 0 58 58" aria-hidden="true"><rect width="58" height="58" fill="var(--acai)"/><path d="M17 24h24l-3 20a4 4 0 0 1-4 3.4H24A4 4 0 0 1 20 44Z" fill="#8a64ab"/><path d="M16 22h26v4H16z" rx="2" fill="#6b4c86"/><circle cx="24" cy="19" r="4.5" fill="#f4c542"/><circle cx="32" cy="18" r="5" fill="#e85a6c"/><path d="M36 14c3 0 5 2 5 5h-6z" fill="#7bbf6a"/><path d="M22 33h14" stroke="#fff" stroke-opacity=".35" stroke-width="2" stroke-linecap="round"/></svg>`,
   pasteis:`<svg viewBox="0 0 58 58" aria-hidden="true"><rect width="58" height="58" fill="var(--past)"/><path d="M11 36c0-9 8-17 18-17s18 8 18 17Z" fill="#e8b45a"/><path d="M11 36h36a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3Z" fill="#b7802a"/><path d="M16 36v-3m5 3v-3m5 3v-3m5 3v-3m5 3v-3m5 3v-3" stroke="#fbf2e3" stroke-width="2" stroke-linecap="round"/><path d="M22 26c3-3 7-4 11-3" stroke="#fff" stroke-opacity=".5" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`,
@@ -139,10 +144,36 @@ function renderCart() {
   $('#cartTot').textContent = brl(total()).replace('grátis', 'R$ 0,00');
   updSend();
 }
+/* horário */
+const DIAS = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+function agoraSP() {
+  const p = {};
+  new Intl.DateTimeFormat('en-US', {timeZone:'America/Sao_Paulo', weekday:'short', hour:'numeric', minute:'numeric', hourCycle:'h23'})
+    .formatToParts(new Date()).forEach(x => p[x.type] = x.value);
+  return {dia: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(p.weekday), min: +p.hour * 60 + +p.minute};
+}
+function situacao() {
+  const {dia, min} = agoraSP(), h = HORARIO[dia];
+  if (h && min >= h[0] * 60 && min < h[1] * 60) return {aberto:true, texto:`Aberto agora · até ${h[1]}h`};
+  if (h && min < h[0] * 60) return {aberto:false, texto:`Fechado · abre hoje às ${h[0]}h`, abre:`hoje às ${h[0]}h`};
+  for (let i = 1; i <= 7; i++) {
+    const d = (dia + i) % 7, hh = HORARIO[d];
+    if (hh) { const q = i === 1 ? 'amanhã' : DIAS[d]; return {aberto:false, texto:`Fechado · abre ${q} às ${hh[0]}h`, abre:`${q} às ${hh[0]}h`}; }
+  }
+  return {aberto:false, texto:'Fechado', abre:''};
+}
+function updStatus() {
+  const s = situacao();
+  $('#status').className = 'pill status ' + (s.aberto ? 'open' : 'closed');
+  $('#statusTx').textContent = s.texto;
+  return s;
+}
+
 function updSend() {
-  const name = $('#fName').value.trim();
-  const ok = cart.length && name;
-  $('#sendHint').textContent = !cart.length ? 'Adicione itens ao pedido' : !name ? 'Preencha seu nome para enviar' : 'Você confere a mensagem no WhatsApp antes de enviar';
+  const name = $('#fName').value.trim(), s = updStatus();
+  const shut = BLOQUEAR_FORA_DO_HORARIO && !s.aberto;
+  const ok = cart.length && name && !shut;
+  $('#sendHint').textContent = shut ? `Estamos fechados agora. Abrimos ${s.abre}.` : !cart.length ? 'Adicione itens ao pedido' : !name ? 'Preencha seu nome para enviar' : 'Você confere a mensagem no WhatsApp antes de enviar';
   $('#send').setAttribute('aria-disabled', !ok);
   const msg = message();
   $('#preview').textContent = msg;
@@ -202,6 +233,10 @@ $('#tabs').addEventListener('click', e => {
 });
 
 $('#waFoot').href = `https://wa.me/${WHATS}`;
+$('#hours').textContent = HORARIO_TEXTO;
+$('#hoursFoot').textContent = HORARIO_TEXTO;
+updStatus();
+setInterval(() => { updStatus(); if (openEl && openEl.id === 'cartSheet') updSend(); }, 60000);
 refresh();
 showTab(tab, false);
 }
